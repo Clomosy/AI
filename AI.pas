@@ -21,7 +21,7 @@ var
       //MyOpenAIEngine.OnNewMessageEvent := 'OnNewMessageEvent';
       if MemMsg.Text = '' then
       begin
-          ShowMessage('Mesaj yazınız!');
+          ShowMessage('Write your question!');
       end
       else
       begin
@@ -89,38 +89,26 @@ var
     begin
       if Clomosy.AppUserProfile = 1 then
       begin
-      MyMQTT.Send('e95vX2faG@3M');	//Kullanicilarin mesajlari gormeMEsi icin gonderilen kod
-      {
-        
-        MyOpenAIEngine.SendAIMessage('Şuanda Fatih Mesleki ve Teknik Anadolu Lisesinde Clomosy eğitim semineri vermekteyiz.');
-        //ShowMessage('');
-        MyOpenAIEngine.SendAIMessage('Clomosy açılımı cloud mobile system demektir. 
-        Şu anda Clomosy aracılığıyla yapay zeka(OpenAI) uygulamasını deniyoruz. 
-        Clomosy, işletmelerin kendi ihtiyaçları doğrultusunda uygulama geliştirebilecekleri bir platformdur. 
-        Farklı platformlara uygun, kullanıcı dostu, geliştirilebilir, düzenlenebilir ve özel mobil uygulamalar 
-        geliştirebileceğiniz bulut tabanlı mobil uygulama geliştirme sistemidir. Platformdan bağımsızdır (Android, Ios, Windows).
-        Clomosy geliştiricisi olmak için web sitesinden (clomosy.com) hesap oluşturulur.
-        Clomosy de geliştirdiğiniz projeleri kullanabilmek için uygulamaları platformlardan yükleyin. (AppStore/PlayStore)
-        Clomosy dokümanlarına ulaşabilmek için docs.clomosy.com sitesini ziyaret edebilirsiniz.');
-        }
+      MyMQTT.Send('e95vX2faG@3M');	
+     
       end;
     end;
     if sayac =1 then
     begin
       if Clomosy.AppUserProfile = 1 then
       begin
-        ShowMessage('Artık sorularınızı sormaya başlayabilirsiniz.');
+        ShowMessage('Now you can start asking your questions.');
         MemMsg.Enabled := True;
         MemMsg.SetFocus;
         BtnSend.Enabled := True;
-        BtnSend.caption := 'Gönder';
+        BtnSend.caption := 'Send';
       end;
       MsgList.Visible := True;
       MsgList.Text := '';
       
       GetTimer.Enabled := False;
       sayac := 20;
-      MyMQTT.Send('52eJz#EzV6Yz');	//Kullanicilarin mesajlari gormesi icin gonderilen kod
+      MyMQTT.Send('52eJz#EzV6Yz');	
       
     end;
   end;
@@ -142,7 +130,7 @@ begin
   "MarginBottom":10,"RoundWidth":10,"BorderColor":"#808080","BorderWidth":2,"BackgroundColor":"9b9b9b"}');
 
 
-  LblDisplay:= MyForm.AddNewLabel(smallPanel,'LblDisplay','CLOMOSY YAPAY ZEKA');
+  LblDisplay:= MyForm.AddNewLabel(smallPanel,'LblDisplay','CLOMOSY AI');
   LblDisplay.Align := alcenter;
   LblDisplay.StyledSettings := ssFamily;
   LblDisplay.TextSettings.Font.Size := 18;
@@ -158,7 +146,7 @@ begin
     
   //ShowMessage(Clomosy.Project_GUID);
   MyMQTT.Channel := 'chat';//project guid + channel
-  MyMQTT.Connect;//ekran açıldıktan sonra bir buton ile cagirma yontemi de test edilmeli
+  MyMQTT.Connect;
 
   middlePanel:=MyForm.AddNewProPanel(bigLyt,'middlePanel');
   clComponent.SetupComponent(middlePanel,'{"Align" : "Top","MarginRight":10,"MarginLeft":10,"Width" :300,"Height":100,
@@ -177,19 +165,18 @@ begin
   MsgList.Margins.Right :=10;
   MsgList.TextSettings.Font.Size:=26;
   MsgList.TextSettings.WordWrap := True;
-  MsgList.EnabledScroll := True;  //olmadı telefonda görünmüyor
+  MsgList.EnabledScroll := True;  
   MsgList.Visible := False;
   
     MemMsg:= MyForm.AddNewMemo(middlePanel,'MemMsg','');
     MemMsg.Align := alTop;
- //   MemMsg.Height := MemMsg.Height * 2;
     MemMsg.Margins.Right:=10;
     MemMsg.Margins.Left:=10;
     MemMsg.Margins.Bottom:= 10;
     MemMsg.Enabled := False;
     
      BtnSend := MyForm.AddNewProButton(middlePanel,'BtnSend','');
-     clComponent.SetupComponent(BtnSend,'{"caption":"GÖNDER","Align" : "Bottom",
+     clComponent.SetupComponent(BtnSend,'{"caption":"Send","Align" : "Bottom",
     "MarginLeft":100,"MarginRight":100,"RoundHeight":2, "RoundWidth":2,"MarginBottom":8,
     "BorderColor":"#808080","BorderWidth":2,"TextBold":"yes"}');
      BtnSend.Enabled := False;
@@ -205,7 +192,7 @@ begin
      
       MyOpenAIEngine.SetToken('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');
       MyOpenAIEngine.OnNewMessageEvent := 'OnNewMessageEvent'; 
-      ShowMessage('Merhaba! Hazırlanmam için bekle. 20 saniye sonra bana sorunu yöneltebilirsin.');
+      ShowMessage('Hello!Wait for me to get ready. After 20 seconds you can manage me the problem.');
       sayac := 20;
       BtnSend.Caption := IntToStr(sayac);
       GetTimer:= MyForm.AddNewTimer(MyForm,'GetTimer',1000);
