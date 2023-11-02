@@ -1,6 +1,6 @@
 var
   MyForm:TclForm;
-  BtnSend:TclProButton;
+  BtnSend,geribtn:TclProButton;
   LblDisplay:TclLabel;
   MemMsg:TclMemo;
   ghMsgList,MsgList:TclMemo;
@@ -12,16 +12,19 @@ var
   GetTimer,
   settingsTmr: TClTimer;
   sayac:integer;
- 
+  
+  procedure geriprcdr
+  begin
+  TclProButton(MyForm.clFindComponent('BtnGoBack')).Click;
+  end;
 
   Procedure BtnSendClick;
   begin
    if Clomosy.AppUserProfile=1 then 
    begin
-      //MyOpenAIEngine.OnNewMessageEvent := 'OnNewMessageEvent';
       if MemMsg.Text = '' then
       begin
-          ShowMessage('Write your question!');
+          ShowMessage('Mesaj yazınız!');
       end
       else
       begin
@@ -34,7 +37,7 @@ var
   Procedure OnNewMessageEvent;
   begin
   
-      if MyMQTT.ReceivedAlright = False then
+      if MyMQTT.ReceivedAlright=False then
       begin
         MsgList.Lines.Add('');
         MyMQTT.Send(MyOpenAIEngine.NewMessageContent);
@@ -66,51 +69,8 @@ var
             MsgList.Lines.Add('');
             MsgList.Lines.Add('                   ' + MyMQTT.ReceivedMessage);
     	      MsgList.ScrollTo(0,MsgList.Lines.Count*MsgList.Lines.Count,True);
-    	      if MyMQTT.ReceivedMessage = 'e95vX2faG@3M' then
-            begin
-              MsgList.Text := '';
-              MsgList.Visible := False;
-            end;
-    	      if MyMQTT.ReceivedMessage = '52eJz#EzV6Yz' then
-            begin
-              MsgList.Text := '';
-              MsgList.Visible := True;
-            end;
           end;
         End;
-  end;
-  procedure runTimer;
-  begin
-    if sayac >= 0 then
-       Dec(sayac);
-       
-    BtnSend.caption := IntToStr(sayac);
-    if sayac = 19 then
-    begin
-      if Clomosy.AppUserProfile = 1 then
-      begin
-      MyMQTT.Send('e95vX2faG@3M');	
-     
-      end;
-    end;
-    if sayac =1 then
-    begin
-      if Clomosy.AppUserProfile = 1 then
-      begin
-        ShowMessage('Now you can start asking your questions.');
-        MemMsg.Enabled := True;
-        MemMsg.SetFocus;
-        BtnSend.Enabled := True;
-        BtnSend.caption := 'Send';
-      end;
-      MsgList.Visible := True;
-      MsgList.Text := '';
-      
-      GetTimer.Enabled := False;
-      sayac := 20;
-      MyMQTT.Send('52eJz#EzV6Yz');	
-      
-    end;
   end;
   
 begin
@@ -130,7 +90,7 @@ begin
   "MarginBottom":10,"RoundWidth":10,"BorderColor":"#808080","BorderWidth":2,"BackgroundColor":"9b9b9b"}');
 
 
-  LblDisplay:= MyForm.AddNewLabel(smallPanel,'LblDisplay','CLOMOSY AI');
+  LblDisplay:= MyForm.AddNewLabel(smallPanel,'LblDisplay','CLOMOSY YAPAY ZEKA');
   LblDisplay.Align := alcenter;
   LblDisplay.StyledSettings := ssFamily;
   LblDisplay.TextSettings.Font.Size := 18;
@@ -145,8 +105,8 @@ begin
   MyForm.AddNewEvent(MyMQTT,tbeOnMQTTPublishReceived,'MyMQTTPublishReceived');
     
   //ShowMessage(Clomosy.Project_GUID);
-  MyMQTT.Channel := 'chat';//project guid + channel
-  MyMQTT.Connect;
+  MyMQTT.Channel := 'ChatAI';//project guid + channel
+  MyMQTT.Connect;//ekran açıldıktan sonra bir buton ile cagirma yontemi de test edilmeli
 
   middlePanel:=MyForm.AddNewProPanel(bigLyt,'middlePanel');
   clComponent.SetupComponent(middlePanel,'{"Align" : "Top","MarginRight":10,"MarginLeft":10,"Width" :300,"Height":100,
@@ -165,39 +125,43 @@ begin
   MsgList.Margins.Right :=10;
   MsgList.TextSettings.Font.Size:=26;
   MsgList.TextSettings.WordWrap := True;
-  MsgList.EnabledScroll := True;  
-  MsgList.Visible := False;
+  MsgList.EnabledScroll := True;  //olmadı telefonda görünmüyor
   
     MemMsg:= MyForm.AddNewMemo(middlePanel,'MemMsg','');
     MemMsg.Align := alTop;
+ //   MemMsg.Height := MemMsg.Height * 2;
     MemMsg.Margins.Right:=10;
     MemMsg.Margins.Left:=10;
     MemMsg.Margins.Bottom:= 10;
     MemMsg.Enabled := False;
     
+  
+   
+   
+    
+  
+    
      BtnSend := MyForm.AddNewProButton(middlePanel,'BtnSend','');
-     clComponent.SetupComponent(BtnSend,'{"caption":"Send","Align" : "Bottom",
+     clComponent.SetupComponent(BtnSend,'{"caption":"GÖNDER","Align" : "Bottom",
     "MarginLeft":100,"MarginRight":100,"RoundHeight":2, "RoundWidth":2,"MarginBottom":8,
     "BorderColor":"#808080","BorderWidth":2,"TextBold":"yes"}');
      BtnSend.Enabled := False;
-  
-  
+     
+    geribtn := MyForm.AddNewProButton(MyForm,'geribtn','');
+    clComponent.SetupComponent(geribtn,'{"Align" : "None","Width":70,"Height":50,"ImgUrl":"https://img.icons8.com/flat-round/64/circled-left.png"}');
+    MyForm.AddNewEvent(geribtn,tbeOnClick,'geriprcdr');
+    geribtn.Position.X:=5;
+    geribtn.Position.Y:=7; 
+      
   if Clomosy.AppUserProfile = 1 then
   begin
-      MyForm.AddNewEvent(BtnSend,tbeOnClick,'BtnSendClick');
-      MyOpenAIEngine:=TclOpenAIEngine.Create(Self);
-      MyOpenAIEngine.ParentForm := MyForm;
-    //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
-    //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
-     
-      MyOpenAIEngine.SetToken('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');
-      MyOpenAIEngine.OnNewMessageEvent := 'OnNewMessageEvent'; 
-      ShowMessage('Hello!Wait for me to get ready. After 20 seconds you can manage me the problem.');
-      sayac := 20;
-      BtnSend.Caption := IntToStr(sayac);
-      GetTimer:= MyForm.AddNewTimer(MyForm,'GetTimer',1000);
-      GetTimer.Enabled := True;
-      MyForm.AddNewEvent(GetTimer,tbeOnTimer,'runTimer');
+    BtnSend.Enabled := True;
+    MemMsg.Enabled := True;
+    MyForm.AddNewEvent(BtnSend,tbeOnClick,'BtnSendClick');
+    MyOpenAIEngine:=TclOpenAIEngine.Create(Self);
+    MyOpenAIEngine.ParentForm := MyForm;
+    MyOpenAIEngine.SetToken('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');
+    MyOpenAIEngine.OnNewMessageEvent := 'OnNewMessageEvent';
   end;
   
   
