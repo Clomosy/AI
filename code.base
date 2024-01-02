@@ -160,7 +160,7 @@ begin
     MyForm.AddNewEvent(BtnSend,tbeOnClick,'BtnSendClick');
     MyOpenAIEngine:=TclOpenAIEngine.Create(Self);
     MyOpenAIEngine.ParentForm := MyForm;
-    MyOpenAIEngine.SetToken('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');
+    MyOpenAIEngine.SetToken('***');	//Your Token
     MyOpenAIEngine.OnNewMessageEvent := 'OnNewMessageEvent';
   end;
   
