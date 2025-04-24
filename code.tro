@@ -1,146 +1,190 @@
 var
   MainForm : TclForm;
   QuestionEdit : TclProEdit;
-  SendButton,geribtn : TClProButton;
-  bigPanel,smallPanel,middlePanel,editPanel:TclProPanel;
-  ghMsgList,MsgList:TclMemo;
-  senderMessageLyt,formLayout : TClLayout;
-  LblDisplay,TitleLabel:TclLabel;
-  MyOpenAIEngine:TclOpenAIEngine;
+  SendButton : TClProButton;
+  ChatPnl,MsjPnl:TclProPanel;
+  MsgList:TclMemo;
+  MainLyt : TClLayout;
+  MainTitleLbl:TclLabel;
   MyMQTT : TclMQTT;
+  strIncomingData : String;
+  Rest: TclRest;
+  API_KEY: string;
+  RequestBody: string;
 
+void ACompletedProc;
+{
+  strIncomingData = Clomosy.CLParseJSON(Rest.Response,'candidates.0.content.parts.0.text');
+  MsgList.Lines.Add(strIncomingData);
+  MyMQTT.Send(strIncomingData);
+}
 
-  void geriprcdr
+void RestCreate(ABaseUrl, ABody :String);
+{
+  Rest = TclRest.Create;
+  Rest.Accept = 'application/json';
+  Rest.ContentType = 'application/json'; // Content-Type
+  Rest.Method = rmPOST;
+  Rest.ConnectTimeOut = 30000;
+  Rest.BaseURL = ABaseUrl; //'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + API_KEY
+  Rest.Body = ABody;
+  Rest.OnCompleted = 'ACompletedProc';
+  Rest.ExecuteAsync;
+  
+}
+
+void BtnSendClick;
+{
+ if ((Clomosy.AppUserProfile==1) && (QuestionEdit.Text <> '')) 
+ {
+  if QuestionEdit.Text <> ''
   {
-  TclProButton(MainForm.clFindComponent('BtnGoBack')).Click;
-  }
-
-  void BtnSendClick;
-  {
-   if ((Clomosy.AppUserProfile==1) && (QuestionEdit.Text <> '')) 
-   {
-    MyOpenAIEngine.SendAIMessage(QuestionEdit.Text);
-    QuestionEdit.Text = '';
+    MyMQTT.Send(QuestionEdit.Text);
+    MsgList.Lines.Add(QuestionEdit.Text);
     MsgList.ScrollTo(0,MsgList.Lines.Count*MsgList.Lines.Count,True);
-   }
+  
+    API_KEY = 'YourAPIKey';  //  Kendi API anahtarınızı buraya girin.
+      // Gönderilecek JSON verilerini oluşturun
+      RequestBody = '{
+      "contents": [
+        {
+          "parts": [
+            {
+              "text": "'+QuestionEdit.Text+'"
+            }
+          ]
+        }
+      ]
+    }';
+    RestCreate('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + API_KEY,RequestBody);
+    QuestionEdit.Text = '';
+  } else
+  {
+    ShowMessage('Lütfen bir soru sorun!');
   }
+ }
+}
 
-void OnNewMessageEvent;
+void MyMQTTPublishReceived;
+{
+  if (MyMQTT.ReceivedAlright ) 
   {
-  
-      if (MyMQTT.ReceivedAlright==False )
-      {
-        MsgList.Lines.Add('');
-        MyMQTT.Send(MyOpenAIEngine.NewMessageContent);
-          if (Clomosy.AppUserProfile == 1 )
-            MsgList.Lines.Add(MyOpenAIEngine.NewMessageContent);
-        MsgList.ScrollTo(0,MsgList.Lines.Count*MsgList.Lines.Count,True);
-      
-         
-      }
-  }
-  
-  void MyMQTTPublishReceived;
-  {
-    if (MyMQTT.ReceivedAlright ) 
+    if (Clomosy.AppUserProfile <> 1 )
     {
-      if (Clomosy.AppUserProfile <> 1 )
-      {
-        MsgList.Lines.Add('');
-        MsgList.Lines.Add(MyMQTT.ReceivedMessage);
-	      MsgList.ScrollTo(0,MsgList.Lines.Count*MsgList.Lines.Count,True);
-      }
+      MsgList.Lines.Add('');
+      MsgList.Lines.Add(MyMQTT.ReceivedMessage);
+      MsgList.ScrollTo(0,MsgList.Lines.Count*MsgList.Lines.Count,True);
     }
   }
-  
-  void SetupFormLayout;
-{
-  formLayout = MainForm.AddNewLayout(MainForm,'formLayout');
-  formLayout.Align=alContents;
-  formLayout.Margins.Bottom = 10;
-  formLayout.Margins.Top = 10;
-
-  geribtn = MainForm.AddNewProButton(MainForm,'geribtn','');
-  clComponent.SetupComponent(geribtn,'{"Align" : "None","Width":70,"Height":50,"ImgUrl":"https://img.icons8.com/flat-round/64/circled-left.png"}');
-  MainForm.AddNewEvent(geribtn,tbeOnClick,'geriprcdr');
-  geribtn.Position.X=5;
-  geribtn.Position.Y=7; 
 }
-  
-  void SetSmallPanel;
-  {
-    smallPanel=MainForm.AddNewProPanel(formLayout,'smallPanel');
-    clComponent.SetupComponent(smallPanel,'{"Align" : "Top","MarginRight":10,"MarginLeft":10,
-    "RoundHeight":5,"RoundWidth":5,"BorderColor":"#008000","BorderWidth":0,"BackgroundColor":"#f7f7f7"}');
-    
-    TitleLabel= MainForm.AddNewLabel(smallPanel,'TitleLabel','            Clomosy Yapay Zeka');
-    TitleLabel.StyledSettings = ssFamily;
-    TitleLabel.TextSettings.Font.Size=20;
-    TitleLabel.Align = alLeft;
-    TitleLabel.Margins.Left= 14;
-    TitleLabel.Margins.Top= 10; 
-    TitleLabel.Height = 65;
-    TitleLabel.Width = 259;
-  }
-  
-  void SetBigPanel;
-  {
-    
-    bigPanel=MainForm.AddNewProPanel(formLayout,'bigPanel');
-    clComponent.SetupComponent(bigPanel,'{"Align" : "Client","MarginRight":10,"MarginLeft":10,
-    "RoundHeight":5,"RoundWidth":5,"BorderColor":"#008000","BorderWidth":0,"BackgroundColor":"#f7f7f7"}');
-    
-    
-    MsgList= MainForm.AddNewMemo(bigPanel,'MsgList','');
-    MsgList.Align = alClient;
-    MsgList.ReadOnly = True;
-    MsgList.Margins.Top= 20;
-    MsgList.Margins.Left= 20;
-    MsgList.Margins.Bottom= 20;
-    MsgList.Margins.Right =20;
-    MsgList.TextSettings.Font.Size=26;
-    MsgList.TextSettings.WordWrap = True;
-    MsgList.EnabledScroll = True;  //olmadı telefonda görünmüyor
-  }
-  
-  void SetMiddlePanel;
-  {
-  
-  middlePanel=MainForm.AddNewProPanel(formLayout,'middlePanel');
-  clComponent.SetupComponent(middlePanel,'{"Align" : "Bottom","MarginRight":10,"MarginLeft":10,"MarginBottom":"20","MarginTop":"5", "Width" :300,"Height":100,
-  "RoundHeight":5,"RoundWidth":5,"BorderColor":"#008000","BorderWidth":0,"BackgroundColor":"#f7f7f7"}');
-  
-  editPanel=MainForm.AddNewProPanel(middlePanel,'editPanel');
-  clComponent.SetupComponent(editPanel,'{"Align" : "Client","MarginRight":10,"MarginLeft":10,"MarginBottom":"20","MarginTop":"20", "Width" :300,"Height":50,
-  "RoundHeight":5,"RoundWidth":5,"BorderColor":"#008000","BorderWidth":0,"BackgroundColor":"#f7f7f7"}');
-  
-  QuestionEdit = MainForm.AddNewProEdit(editPanel,'QuestionEdit','Ask a question...');
-  clComponent.SetupComponent(QuestionEdit,'{"Align" : "Client",
-  "Height":10,"RoundHeight":10,"RoundWidth":10,"BorderColor":"#3bf5c0","MarginLeft":10,"MarginRight":10,
-  "MarginTop":10,"BorderWidth":1}');
 
-  SendButton = MainForm.AddNewProButton(editPanel,'SendButton','Gönder');
-  clComponent.SetupComponent(SendButton,'{"Align" : "Right","MarginBottom":0,"MarginTop":10,"Width" :160, 
-  "BackgroundColor":"#1814F3", "RoundHeight":10,
-  "RoundWidth":10,"TextColor":"#ffffff",
-  "TextBold":"yes","TextSize":16, "MarginRight":16 }');
+void SetMiddlePanel;
+{
+  MsjPnl=MainForm.AddNewProPanel(MainLyt,'MsjPnl');
+  MsjPnl.Align = AlBottom;
+  MsjPnl.Height = 100;
+  MsjPnl.Margins.Top = 5;
+  MsjPnl.Margins.Bottom = 20;
+  MsjPnl.Margins.Left = 10;
+  MsjPnl.Margins.Right = 10;
+  MsjPnl.SetclProSettings(ChatPnl.clProSettings);
+  
+  QuestionEdit = MainForm.AddNewProEdit(MsjPnl,'QuestionEdit','Bir soru sor...');
+  QuestionEdit.Align = AlClient;
+  QuestionEdit.Margins.Left = 10;
+  QuestionEdit.Margins.Right = 10;
+  QuestionEdit.Margins.Top = 10;
+  QuestionEdit.Margins.Bottom = 10;
+  QuestionEdit.clProSettings.BorderColor = clAlphaColor.clHexToColor('#3bf5c0');
+  QuestionEdit.clProSettings.FontHorzAlign = palLeading;
+  QuestionEdit.clProSettings.BorderWidth = 1;
+  QuestionEdit.clProSettings.IsRound = True;
+  QuestionEdit.clProSettings.RoundHeight = 10;
+  QuestionEdit.clProSettings.RoundWidth = 10;
+  QuestionEdit.clProSettings.WordWrap = True;
+  QuestionEdit.SetclProSettings(QuestionEdit.clProSettings);
+  
+  SendButton = MainForm.AddNewProButton(MsjPnl,'SendButton','Gönder');
+  SendButton.Align = AlRight;
+  SendButton.Width = MsjPnl.Width/4;
+  SendButton.Margins.Bottom = 10;
+  SendButton.Margins.Top = 10;
+  SendButton.Margins.Right = 10;
+  SendButton.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#1814F3');
+  SendButton.clProSettings.FontColor = clAlphaColor.clHexToColor('#ffffff');
+  SendButton.clProSettings.FontSize = 16;
+  SendButton.clProSettings.TextSettings.Font.Style = [fsBold];
+  SendButton.clProSettings.IsRound = True;
+  SendButton.clProSettings.RoundHeight = 10;
+  SendButton.clProSettings.RoundWidth = 10;
+  SendButton.SetclProSettings(SendButton.clProSettings);
+  
   MainForm.AddNewEvent(SendButton,tbeOnClick,'BtnSendClick');
-  }
+}
+
+void SetBigPanel;
+{
+  ChatPnl=MainForm.AddNewProPanel(MainLyt,'ChatPnl');
+  ChatPnl.Align = AlClient;
+  ChatPnl.Margins.Right = 10;
+  ChatPnl.Margins.Left = 10;
+  ChatPnl.Margins.Right = 10;
+  ChatPnl.Margins.Right = 10;
+  ChatPnl.clProSettings.BorderColor = clAlphaColor.clHexToColor('#008000');
+  ChatPnl.clProSettings.BorderWidth = 0;
+  ChatPnl.clProSettings.IsRound = True;
+  ChatPnl.clProSettings.RoundHeight = 5;
+  ChatPnl.clProSettings.RoundWidth = 5;
+  ChatPnl.clProSettings.BackgroundColor = clAlphaColor.clHexToColor('#f7f7f7');
+  ChatPnl.SetclProSettings(ChatPnl.clProSettings);
   
-  void VirtualKeyboardShow;
-  {
-    middlePanel.Margins.Bottom = MainForm.clVKBoundsHeight;
-  }
-  
-  void VirtualKeyboardHidden;
-  {
-    middlePanel.Margins.Bottom = 0;
-  }
+  MsgList= MainForm.AddNewMemo(ChatPnl,'MsgList','');
+  MsgList.Align = alClient;
+  MsgList.ReadOnly = True;
+  MsgList.Margins.Top= 20;
+  MsgList.Margins.Left= 20;
+  MsgList.Margins.Bottom= 20;
+  MsgList.Margins.Right =20;
+  MsgList.TextSettings.Font.Size=26;
+  MsgList.TextSettings.WordWrap = True;
+  MsgList.EnabledScroll = True;  //olmadi telefonda görünmüyor
+}
+
+void SetMainTitle;
+{
+  MainTitleLbl= MainForm.AddNewLabel(MainForm.LytTopBar,'MainTitleLbl',' Clomosy Yapay Zeka');
+  MainTitleLbl.StyledSettings = ssFamily;
+  MainTitleLbl.TextSettings.Font.Size=20;
+  MainTitleLbl.Align = alLeft;
+  MainTitleLbl.Margins.Left= 14;
+  MainTitleLbl.Margins.Top= 10; 
+  MainTitleLbl.Height = 65;
+  MainTitleLbl.Width = 259;
+}
  
+void VirtualKeyboardShow;
+{
+  MsjPnl.Margins.Bottom = MainForm.clVKBoundsHeight;
+}
+
+void VirtualKeyboardHidden;
+{
+  MsjPnl.Margins.Bottom = 0;
+}
+
 {
   MainForm = TclForm.Create(Self);
-  SetupFormLayout;
-  SetSmallPanel;
+  MainForm.BtnFormMenu.Visible = False;
+  MainForm.FormWaiting.Visible = False;
+  Clomosy.ShowExceptions = False;
+  
+  SetMainTitle;
+  
+  MainLyt = MainForm.AddNewLayout(MainForm,'MainLyt');
+  MainLyt.Align=alClient;
+  MainLyt.Margins.Bottom = 10;
+  MainLyt.Margins.Top = 10;
+  
   SetBigPanel;
   SetMiddlePanel;
 
@@ -148,15 +192,11 @@ void OnNewMessageEvent;
   MainForm.AddNewEvent(MyMQTT,tbeOnMQTTPublishReceived,'MyMQTTPublishReceived');
   MyMQTT.Channel = 'ChatAI';
   MyMQTT.Connect;
-
+  
+  
   if (Clomosy.AppUserProfile == 1 )
   {
     SendButton.Enabled = True;
-	
-    MyOpenAIEngine=TclOpenAIEngine.Create(Self);
-    MyOpenAIEngine.ParentForm = MainForm;
-    MyOpenAIEngine.SetToken('YourToken');
-    MyOpenAIEngine.OnNewMessageEvent = 'OnNewMessageEvent';
   }
   else
   {
@@ -165,11 +205,5 @@ void OnNewMessageEvent;
     QuestionEdit.Enabled = False;
   }
 
-  MainForm.AddNewEvent(MainForm,tbeOnVirtualKeyboardShown,'VirtualKeyboardShow');
-  MainForm.AddNewEvent(MainForm,tbeOnVirtualKeyboardHidden,'VirtualKeyboardHidden');
-  
-  if(Clomosy.PlatformIsMobile) 
     MainForm.Run;
-  else
-    MainForm.RunModal;
 }
